@@ -514,7 +514,6 @@ def backtest(stocks, cash, start_bal, nper, start_yr):
     dff.loc[0, columns] = start_bal
     return dff
 
-
 def cagr(dff):
     """calculate Compound Annual Growth Rate for a series and returns a formated string"""
 
@@ -523,7 +522,6 @@ def cagr(dff):
     planning_time = len(dff) - 1
     cagr_result = ((end_bal / start_bal) ** (1 / planning_time)) - 1
     return f"{cagr_result:.1%}"
-
 
 def worst(dff, asset):
     """calculate worst returns for asset in selected period returns formated string"""
@@ -570,8 +568,6 @@ def make_summary_table(dff):
         }
     )
     return dbc.Table.from_dataframe(df_table, bordered=True, hover=True)
-
-
 
 # ! - CALLBACKS 
 # ? - Callback #1 -> Update the pie chart 
