@@ -40,9 +40,9 @@ def update_wb_data():
     df = wb.download(
         indicator=(list(indicators)), country=countries["iso3c"], start=2005, end=2016
     )  # Columns: Country, Year, IT.NET.USER.ZS, SG.GEN.PARL, EN.ATM, !! No ISO3
-    print(df.head())
-    print(df.info())
-    print(df.describe())
+    #print(df.head())
+    #print(df.info())
+    #print(df.describe())
     df = (
         df.reset_index()
     )  # We reset the index so that country and year, which are part of the index, become new columns, and we have a dedicated index column with nothing but integers, which will help with filtering later.
@@ -144,11 +144,12 @@ def store_data(_): #One parameter, because one input
     return dataframe.to_dict("records") # Because we have one output, if it had multiple, then return multiple. 
 
 #* Callback 2 - Second callback is responsible for creating and displaying the choropleth map on the app. 
+# ? - Callback ordering -> If callbacks don't depend on each other, the order won't matter. For callbacks that do, the trigger should be written before any other callback. 
 @app.callback(
     Output("my-choropleth","figure"),   # La figura que vamos a generar
-    Input("my-button", "n_clicks"),  # 'Todos los parametros de entrada. -> No vamos a permitir que se actualice hasta que se pulse el botón porque es un input. 
+    Input("my-button", "n_clicks"),     # 'Todos los parametros de entrada. -> No vamos a permitir que se actualice hasta que se pulse el botón porque es un input. 
     Input("storage", "data"), 
-    State("years-range", "value"),   # Cambios de estado. Makes a note of users selection. Esto es mucho de React. 
+    State("years-range", "value"),      # Cambios de estado. Makes a note of users selection. Esto es mucho de React. 
     State("radio-indicator", "value")
 )
 
@@ -156,46 +157,37 @@ def update_graph(n_clicks, stored_dataframe, years_chosen, indct_chosen):
     dff = pd.DataFrame.from_records(stored_dataframe) #Obten la última versión del dataset de memoria. 
     print(years_chosen)
 
+    # Filter the DataFrame based on years_chosen
     if years_chosen[0] != years_chosen[1]:
         dff = dff[dff.year.between(years_chosen[0], years_chosen[1])]
         dff = dff.groupby(["iso3c", "country"])[indct_chosen].mean()
-        dff = dff.reset_index()
-
-        fig = px.choropleth(
-            data_frame= dff, 
-            locations = "iso3c", 
-            color=indct_chosen, 
-            scope="world", 
-            hover_data={"iso3c":False, "country":True}, 
-            labels={
-                indicators["SG.GEN.PARL.ZS"]: "% parliament women", 
-                indicators["IT.NET.USER.ZS"]: "pop. % using internet", 
-            },
-        )
-    
-    elif years_chosen[0] == years_chosen[1]:
+    else:
         dff = dff[dff["year"].isin(years_chosen)]
-        fig = px.choropleth(
-            data_frame=dff, 
-            locations="iso3c", 
-            color=indct_chosen, 
-            scope="world", 
-            hover_data={"iso3c":False, "country":True}, 
-            labels={
-                indicators["SG.GEN.PARL.ZS"]: "% parliament women", 
-                indicators["IT.NET.USER.ZS"]: "pop. % using internet", 
-            },
-        )
+
+    # Reset the index if needed
+    dff = dff.reset_index()
+    print(dff)
+    # Define labels for the plot
+    labels = {
+        indicators["SG.GEN.PARL.ZS"]: "% parliament women", 
+        indicators["IT.NET.USER.ZS"]: "pop. % using internet"
+    }
+
+    # Create the choropleth plot
+    fig = px.choropleth(
+        data_frame=dff, 
+        locations="iso3c", 
+        color=indct_chosen, 
+        scope="world", 
+        hover_data={"iso3c": False, "country": True}, 
+        labels=labels
+    )
     
     fig.update_layout(
-            geo={"projection":{"type": "natural earth"}}, 
-            margin=dict(l=50, r=50, t=50, b=50)
-        )
+        geo={"projection":{"type": "natural earth"}}, 
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
     return fig
 
-
-
-
-
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug = True)
