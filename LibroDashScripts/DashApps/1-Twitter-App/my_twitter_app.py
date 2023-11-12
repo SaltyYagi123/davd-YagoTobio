@@ -71,7 +71,7 @@ app.layout = html.Div(
                 target="_blank", #Si quieres que se abra en una nueva pestaña, esto debería de ser _blank, en vez de _self
                 style={"color":"red", "backgroundColor": "yellow", "fontSize":"40px"}
             ), 
-            className="two columns", 
+            className="four columns", 
         ),
     ],
     className="row"
