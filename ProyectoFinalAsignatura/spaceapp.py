@@ -1,4 +1,11 @@
 from dash import Dash, html, dcc, Input, Output, State
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from io import BytesIO
+from collections import Counter
+
+
+import base64
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
@@ -14,6 +21,82 @@ df["Year Interval"] = pd.cut(
     df["Year"], bins=range(df["Year"].min(), df["Year"].max() + 5, 5), right=False
 )
 df["Year Interval"] = df["Year Interval"].astype(str)
+
+# Extract state from 'Birth Place'
+df["State"] = df["Birth Place"].str.split(",").str[-1].str.strip()
+
+# Define lists of majors you consider 'Typical'
+typical_majors_keywords = ['Engineering', 'Science', 'Physics', 'Mathematics', 'Chemistry', 'Biology', 'Astronomy', 'Aeronautics']
+
+# Function to categorize majors based on keywords
+def categorize_major(major):
+    major = str(major)  # Ensure the major is a string
+    for keyword in typical_majors_keywords:
+        if keyword in major:
+            return 'Typical'
+    return 'Wacky/Unusual'
+
+# Apply this function to the 'Undergraduate Major' column
+df['Major Category'] = df['Undergraduate Major'].apply(categorize_major)
+
+# Count the number of astronauts in each categorized major
+major_counts = df.groupby(['Major Category', 'Undergraduate Major']).size().reset_index(name='Number of Astronauts')
+
+# Count the number of astronauts per state
+state_counts = df["State"].value_counts().reset_index()
+state_counts.columns = ["State", "Astronaut Count"]
+
+#! - Word Count Bubble for the Space Missions 
+# Split the 'Missions' column into individual missions and count them
+mission_list = df['Missions'].dropna().str.split(', ').sum()
+mission_counts = Counter(mission_list)
+
+# Generate the word cloud from frequencies
+wordcloud = WordCloud(width=800, height=400, background_color='white').generate_from_frequencies(mission_counts)
+
+# Convert the word cloud image to a string of base64 to display in Dash
+plt.figure(figsize=(10, 5))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+img = BytesIO()
+plt.savefig(img, format='png', bbox_inches='tight', pad_inches=0)
+img.seek(0)
+wordcloud_string = base64.b64encode(img.getvalue()).decode()
+
+wordcloud_image = html.Img(src='data:image/png;base64,{}'.format(wordcloud_string), style={'width': '100%', 'height': 'auto'})
+
+
+"""
+FIGURES
+========================================================================================
+"""
+# You might need a mapping from state names to codes
+
+# Create the choropleth map
+fig_choropleth = px.choropleth(
+    state_counts,
+    locations="State",
+    locationmode="USA-states",
+    color="Astronaut Count",
+    scope="usa",
+    title="Number of Astronauts by US State",
+)
+
+# Adjust layout if needed
+fig_choropleth.update_layout(geo=dict(bgcolor="rgba(0,0,0,0)"))
+
+fig_education = px.scatter(
+    major_counts, 
+    x='Undergraduate Major', 
+    y='Major Category', 
+    size='Number of Astronauts',
+    color='Major Category', 
+    title='Astronauts by Major: Typical vs. Wacky/Unusual'
+)
+
+# Improve readability
+fig_education.update_layout(xaxis_tickangle=-45)
+fig_education.update_traces(marker=dict(opacity=0.7))  # Adjust opacity for better visualization
 
 app = Dash(
     __name__, external_stylesheets=[dbc.themes.SUPERHERO, dbc.icons.FONT_AWESOME]
@@ -81,27 +164,48 @@ astronaut_card = dbc.Card(
             [
                 dbc.Col(
                     [
-                    html.H3("Status Selector"),
-                    dcc.Checklist(
-                        id="status-selector",
-                        options=[
-                            {"label": s, "value": s} for s in df["Status"].unique()
-                        ],
-                        value=df["Status"].unique().tolist(),
-                        inline=False,
-                    ),
-                    html.H3("Gender Selector"),
-                    dcc.Checklist(
-                        id="gender-selector",
-                        options=[
-                            {"label": g, "value": g} for g in df["Gender"].unique()
-                        ],
-                        value=df["Gender"].unique().tolist(),
-                        inline=True,
-                    )],
+                        html.H3("Status Selector"),
+                        dcc.Checklist(
+                            id="status-selector",
+                            options=[
+                                {"label": s, "value": s} for s in df["Status"].unique()
+                            ],
+                            value=df["Status"].unique().tolist(),
+                            inline=False,
+                        ),
+                        html.H3("Gender Selector"),
+                        dcc.Checklist(
+                            id="gender-selector",
+                            options=[
+                                {"label": g, "value": g} for g in df["Gender"].unique()
+                            ],
+                            value=df["Gender"].unique().tolist(),
+                            inline=True,
+                        ),
+                        
+                    ],
                     width=2,
                 ),  # Adjust width as needed
-                dbc.Col(dcc.Graph(id="bar-chart"), width=10),  # Adjust width as needed
+                dbc.Col(
+                    [
+                        html.H3("Year Range Slider"),
+                        dcc.RangeSlider(
+                            id="year-range-slider",
+                            min=df["Year"].min(),
+                            max=df["Year"].max(),
+                            value=[df["Year"].min(), df["Year"].max()],
+                            marks={str(year): str(year) for year in range(df['Year'].min(), df['Year'].max() + 1) if year % 5 == 0},
+                            allowCross=False,
+                        ),
+                        dcc.Graph(id="bar-chart"),
+                        dcc.Graph(id="us-map", figure=fig_choropleth),
+                        dcc.Graph(id='major-bubble-chart', figure=fig_education),
+                        html.H3("Word Soup de las misiones espaciales"),
+                        wordcloud_image,
+                    ],
+                    width=10,
+                ),
+                # Adjust width as needed
             ]
         )
     ),
@@ -159,17 +263,29 @@ CALLBACKS
 """
 
 
-@app.callback(Output("bar-chart", "figure"), [Input("status-selector", "value"), Input("gender-selector", "value")])
-def update_chart(selected_status, selected_gender):
-    filtered_df = df[df["Status"].isin(selected_status)]
-    filtered_df = filtered_df[filtered_df["Gender"].isin(selected_gender)]
+@app.callback(
+    [Output("bar-chart", "figure"), Output("us-map", "figure"), Output("major-bubble-chart", "figure")],
+    [
+        Input("year-range-slider", "value"),
+        Input("status-selector", "value"),
+        Input("gender-selector", "value"),
+    ],
+)
+def update_visualizations(selected_year_range, selected_status, selected_gender):
     
+    filtered_df = df[(df['Year'] >= selected_year_range[0]) & (df['Year'] <= selected_year_range[1])]
+    if selected_status:
+        filtered_df = filtered_df[filtered_df['Status'].isin(selected_status)]
+    if selected_gender:
+        filtered_df = filtered_df[filtered_df['Gender'].isin(selected_gender)]
+
     grouped_df = (
         filtered_df.groupby(["Year Interval", "Status"])
         .size()
         .reset_index(name="Count")
     )
-    fig = px.bar(
+
+    bar_fig = px.bar(
         grouped_df,
         x="Year Interval",
         y="Count",
@@ -177,7 +293,41 @@ def update_chart(selected_status, selected_gender):
         barmode="group",
         title="Numero de Astronautas por rango a través de los años",
     )
-    return fig
+
+    state_counts = filtered_df["State"].value_counts().reset_index()
+    state_counts.columns = ["State", "Astronaut Count"]
+
+    map_fig = px.choropleth(
+        state_counts,
+        locations="State",
+        locationmode="USA-states",
+        color="Astronaut Count",
+        scope="usa",
+        title="Number of Astronauts by US State",
+    )
+    map_fig.update_layout(geo=dict(bgcolor="rgba(0,0,0,0)"))
+
+    # Prepare data for the bubble chart
+    major_counts = filtered_df['Undergraduate Major'].value_counts().reset_index()
+    major_counts.columns = ['Undergraduate Major', 'Number of Astronauts']
+    major_counts['Major Category'] = major_counts['Undergraduate Major'].apply(categorize_major)
+
+    # Create the bubble chart
+    bubble_fig = px.scatter(
+        major_counts,
+        x='Undergraduate Major',
+        y='Major Category',
+        size='Number of Astronauts',
+        color='Major Category',
+        title='Astronauts by Major: Typical vs. Wacky/Unusual'
+    )
+
+    # Adjust layout for the bubble chart
+    bubble_fig.update_layout(xaxis_tickangle=-45)
+    bubble_fig.update_traces(marker=dict(opacity=0.7))
+
+    # Return all the figures
+    return bar_fig, map_fig, bubble_fig
 
 
 if __name__ == "__main__":

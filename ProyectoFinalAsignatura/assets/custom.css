@@ -1,0 +1,5 @@
+/* custom.css */
+.rc-slider-mark-text {
+    transform: rotate(-45deg);
+    color: white !important;
+}
