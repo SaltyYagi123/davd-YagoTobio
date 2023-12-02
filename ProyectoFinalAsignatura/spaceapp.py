@@ -88,6 +88,10 @@ wordcloud_image = html.Img(
     style={"width": "100%", "height": "auto"},
 )
 
+spacex_image = html.Img(
+    src="assets/spacex.jpeg",
+    style={'display': 'block', 'margin-left': 'auto', 'margin-right': 'auto', 'width': '75%'}
+)
 
 """
 DATA PRE-PROCESSING FOR THE SPACE MISSIONS:
@@ -232,9 +236,10 @@ learn_text = dcc.Markdown(
 footer = html.Div(
     dcc.Markdown(
         """
-        Desarrollado por Yago Tobio Souto. 5º GITT + BA. 
-        Datasets utilizados: 
-        1. Nasa Astronauts (1959 - Present) _https://www.kaggle.com/datasets/nasa/astronaut-yearbook_
+        Desarrollado por Yago Tobio Souto. 5º GITT + BA.\n
+        Datasets utilizados:\n
+        1. Nasa Astronauts (1959 - Present) _https://www.kaggle.com/datasets/nasa/astronaut-yearbook_\n
+        2. All Space Missions since 1950 _https://www.kaggle.com/datasets/agirlcoding/all-space-missions-from-1957_\n
         """
     ),
     className="p-2 mt-5 bg-primary text-white small",
@@ -360,7 +365,12 @@ astronaut_card = dbc.Card(
 
 failure_explanation_card = dbc.Card(
     dbc.CardBody(
-
+        dbc.Row(
+            [
+            html.H2("¿Porque fallan las misiones espaciales?"), 
+            spacex_image
+            ]
+        ),
     )
 )
 
@@ -375,10 +385,11 @@ tabs = dbc.Tabs(
         dbc.Tab(
             astronaut_card,
             tab_id="tab-2",
-            label="Astronauts",
+            label="Astronautas",
             className="pb-4",
         ),
-        dbc.Tab(missions_card, tab_id="tab-3", label="Missions", className="pb-4"),
+        dbc.Tab(missions_card, tab_id="tab-3", label="Misiones", className="pb-4"),
+        dbc.Tab(failure_explanation_card, tab_id="tab-4", label="¿Porque fallan las misiones espaciales?", className="pb-4")
     ],
     id="tabs",
     active_tab="tab-1",
@@ -552,4 +563,4 @@ def update_3d_scatter(selected_companies):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)
