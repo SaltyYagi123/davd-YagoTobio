@@ -15,22 +15,16 @@ def create_choropleth_figure(df, title, locations, locationmode, color, scope=No
     Returns:
     plotly.graph_objs._figure.Figure: The choropleth figure.
     """
+    fig = px.choropleth(
+        df,
+        locations=locations,
+        locationmode=locationmode,
+        color=color,
+        title=title,
+        scope=scope,
+    )
 
-    choropleth_args = {
-        "df": df,
-        "locations": locations,
-        "locationmode": locationmode,
-        "color": color,
-        "title": title
-    }
-
-    # Add scope to arguments only if it's provided
-    if scope is not None:
-        choropleth_args["scope"] = scope
-
-    fig = px.choropleth(**choropleth_args)
     return fig
-
 
 def create_sunburst(df,inner_circle,outer_circle, title):
     """
