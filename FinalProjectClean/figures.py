@@ -147,28 +147,35 @@ def company_sunburst(df):
     return fig
 
 def company_success_bar_chart(df):
-    successPerc = df[df['Status Mission'] == 'Success'].groupby('Company Name')['Status Mission'].count()
-    for company in successPerc.index:
-        successPerc[company] = (successPerc[company] / len(df[df['Company Name'] == company]))*100
+    # Ensure the Series is of type float to accommodate percentage values
+    successPerc = df[df['Status Mission'] == 'Success'].groupby('Company Name')['Status Mission'].count().astype(float)
+    total_missions = df.groupby('Company Name')['Status Mission'].count()
+    
+    # Calculate the success percentage
+    successPerc = (successPerc / total_missions) * 100
     successPerc = successPerc.sort_index()
-    FailurePerc = df[df['Status Mission'] == 'Failure'].groupby('Company Name')['Status Mission'].count()
-    for company in FailurePerc.index:
-        FailurePerc[company] = (FailurePerc[company] / len(df[df['Company Name'] == company]))*100
+    
+    # Do the same for failure percentage
+    FailurePerc = df[df['Status Mission'] == 'Failure'].groupby('Company Name')['Status Mission'].count().astype(float)
+    FailurePerc = (FailurePerc / total_missions) * 100
     FailurePerc = FailurePerc.sort_index()
 
-    trace1 = go.Bar(x = successPerc.index, y = successPerc.values, name = 'Success Rate of Companies',opacity=0.7)
-    trace2 = go.Bar(x = FailurePerc.index, y = FailurePerc.values, name = 'Failure Rate of Companies',opacity=0.7)
-    fig = go.Figure([trace1,trace2])
-    fig.update_layout(template = 'plotly_white',margin=dict(l=80, r=80, t=25, b=10),
-                    title = {'text' : '<b>Success and Failure Rates of Companies</b>', 'x' : 0.5},width = 1000,yaxis_title = '<b>Percentage</b>',xaxis_title = '<b>Companies</b>',
-                    legend=dict(
-                        yanchor="top",
-                        y=0.99,
-                        xanchor="left",
-                        x=0.01
-    ))
+    # Plotting code remains the same
+    trace1 = go.Bar(x=successPerc.index, y=successPerc.values, name='Success Rate of Companies', opacity=0.7)
+    trace2 = go.Bar(x=FailurePerc.index, y=FailurePerc.values, name='Failure Rate of Companies', opacity=0.7)
+    fig = go.Figure([trace1, trace2])
+    fig.update_layout(template='plotly_white', margin=dict(l=80, r=80, t=25, b=10),
+                      title={'text': '<b>Success and Failure Rates of Companies</b>', 'x': 0.5}, width=1000,
+                      yaxis_title='<b>Percentage</b>', xaxis_title='<b>Companies</b>',
+                      legend=dict(
+                          yanchor="top",
+                          y=0.99,
+                          xanchor="left",
+                          x=0.01
+                      ))
 
     return fig
+
 
 def treemap_success(df):
     fig = px.treemap(df,path = ['Status Mission','Country','Company Name'])
@@ -271,7 +278,6 @@ def average_mission_cost_companies(df):
                     title = { 'text' : '<b>Average Mission Cost Over the years For Various Companies</b>', 'x' : 0.5})
 
     return fig
-
 
 def xgboost_importance_factors(df):
     # Assuming 'df' is your DataFrame

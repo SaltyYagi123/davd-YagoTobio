@@ -31,6 +31,7 @@ df_astronauts, major_counts, state_counts = load_and_preprocess_data_astronauts(
     "assets/astronauts.csv"
 )
 df_mission_success = load_mission_success("assets/Space_Corrected.csv")
+
 df_ms = process_mission_success(df_mission_success)
 wordcloud_image = generate_wordcloud(df_astronauts)
 
