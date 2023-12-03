@@ -568,7 +568,8 @@ def create_layout(
             Datasets utilizados:\n
             1. Nasa Astronauts (1959 - Present) _https://www.kaggle.com/datasets/nasa/astronaut-yearbook_\n
             2. All Space Missions since 1950 _https://www.kaggle.com/datasets/agirlcoding/all-space-missions-from-1957_\n
-            3. Space Missions from 1957 _https://www.kaggle.com/datasets/agirlcoding/all-space-missions-from-1957_
+            3. Space Missions from 1957 _https://www.kaggle.com/datasets/agirlcoding/all-space-missions-from-1957_\n
+            _Special thanks to Aayush Jain_
             """
         ),
         className="p-2 mt-5 bg-primary text-white small",
