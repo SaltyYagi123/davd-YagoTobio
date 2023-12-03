@@ -1,4 +1,8 @@
 import plotly.express as px 
+import plotly.graph_objs as go
+import pandas as pd
+from plotly.subplots import make_subplots
+from sklearn.preprocessing import LabelEncoder
 
 def create_choropleth_figure(df, title, locations, locationmode, color, scope=None):
     """
@@ -106,5 +110,164 @@ def create_scatterplot_major(df,x,y,size,color,title):
     fig.update_traces(
         marker=dict(opacity=0.7)
     )  # Adjust opacity for better visualization
+
+    return fig
+
+def create_group_bar_chart(df):
+    encoder = LabelEncoder()
+    encoder.fit(df['Status Mission'])
+    colors = {0 : 'red', 1 : 'Orange', 2 : 'Yellow', 3 : 'Green'}
+    fig = make_subplots(rows = 4 ,cols = 4,subplot_titles=df['Country'].unique())
+
+    for i, country in enumerate(df['Country'].unique()):
+        counts = df[df['Country'] == country]['Status Mission'].value_counts(normalize = True) * 100
+        color = [colors[x] for x in encoder.transform(counts.index)]
+        trace = go.Bar(x = counts.index, y = counts.values, name = country,showlegend=False,marker={'color' : color})
+        fig.add_trace(trace, row = (i//4)+1, col = (i%4)+1)
+    
+    fig.update_layout(margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Countries and Mission Status</b>', 'x' : 0.5},title_font_color= '#cacaca',
+                    height = 800,
+                    width = 850)
+                    
+    for i in range(1,5):
+        fig.update_yaxes(title_text = 'Percentage',row = i, col = 1)
+    
+    return fig
+
+def company_sunburst(df):
+
+    fig = px.sunburst(df, path = ['Status Mission', 'Country'])
+    fig.update_layout(title = { 'text' : '<b>Countries and Mission Status</b>', 'x' : 0.5})
+    return fig
+
+def company_success_bar_chart(df):
+    successPerc = df[df['Status Mission'] == 'Success'].groupby('Company Name')['Status Mission'].count()
+    for company in successPerc.index:
+        successPerc[company] = (successPerc[company] / len(df[df['Company Name'] == company]))*100
+    successPerc = successPerc.sort_index()
+    FailurePerc = df[df['Status Mission'] == 'Failure'].groupby('Company Name')['Status Mission'].count()
+    for company in FailurePerc.index:
+        FailurePerc[company] = (FailurePerc[company] / len(df[df['Company Name'] == company]))*100
+    FailurePerc = FailurePerc.sort_index()
+
+    trace1 = go.Bar(x = successPerc.index, y = successPerc.values, name = 'Success Rate of Companies',opacity=0.7)
+    trace2 = go.Bar(x = FailurePerc.index, y = FailurePerc.values, name = 'Failure Rate of Companies',opacity=0.7)
+    fig = go.Figure([trace1,trace2])
+    fig.update_layout(template = 'plotly_white',margin=dict(l=80, r=80, t=25, b=10),
+                    title = {'text' : '<b>Success and Failure Rates of Companies</b>', 'x' : 0.5},width = 1000,yaxis_title = '<b>Percentage</b>',xaxis_title = '<b>Companies</b>',
+                    legend=dict(
+                        yanchor="top",
+                        y=0.99,
+                        xanchor="left",
+                        x=0.01
+    ))
+
+    return fig
+
+def treemap_success(df):
+    fig = px.treemap(df,path = ['Status Mission','Country','Company Name'])
+    fig.update_layout(template = 'ggplot2',margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Mission Status,Countries and Companies</b>', 'x' : 0.5})
+    fig.show()
+
+    return fig
+
+def rocket_effect(df):
+    # creating a single list containing the names of the Launch Vehicles
+    details = []
+    for detail in df.Detail.values:
+        d = [x.strip() for x in detail.split('|')]
+        for ele in d:
+            if('Cosmos' in ele):
+                details.append('Cosmos')
+            elif('Vostok' in ele):
+                details.append('Vostok')
+            elif('Tsyklon' in ele):
+                details.append('Tsyklon')
+            elif('Ariane' in ele):
+                details.append('Ariane')
+            elif('Atlas' in ele):
+                details.append('Atlas')
+            elif('Soyuz' in ele):
+                details.append('Soyuz')
+            elif('Delta' in ele):
+                details.append('Delta')
+            elif('Titan' in ele):
+                details.append('Titan')
+            elif('Molniya' in ele):
+                details.append('Molniya')
+            elif('Zenit' in ele):
+                details.append('Zenit')
+            elif('Falcon' in ele):
+                details.append('Falcon')
+            elif('Long March' in ele):
+                details.append('Long March')
+            elif('PSLV' in ele):
+                details.append('PSLV')
+            elif('GSLV' in ele):
+                details.append('GSLV')
+            elif('Thor' in ele):
+                details.append('Thor')
+            else:
+                details.append('Other')
+    counts = dict(pd.Series(details).value_counts(sort = True))
+    fig = go.Figure(go.Bar(x = list(counts.keys()), y = list(counts.values())))
+    fig.update_layout(template = 'ggplot2',margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Number of Missions in each type of Launch Vehicle</b>', 'x' : 0.5},
+                    yaxis_title = '<b>Number of Missions</b>',xaxis_title = '<b>Launch Vehicle</b>',)
+    
+    return fig
+
+def failed_missions_calendar(df):
+    fig = make_subplots(rows = 3, cols = 1)
+    for i, period in enumerate(['year', 'month', 'weekday']):
+        data = df[df['Status Mission'] == 'Failure'][period].value_counts().sort_index()
+        data = dict((data / df[period].value_counts().sort_index())*100.0)
+        mean = sum(data.values()) / len(data)
+        if(period == 'year'):
+            x = list(data.keys())
+        elif(period == 'month'):
+            x = ['January', 'February', 'March', 'April', 'May','June', 'July', 'August','September','October', 'November', 'December']
+        else:
+            x = ['Monday', 'Tuesday', 'Wednesday','Thursday','Friday','Saturday','Sunday']
+        trace1 = go.Scatter(x = x, y = list(data.values()),mode = 'lines',text = list(data.keys()),name = f'Failures in each {period}',connectgaps = False)
+        trace2 = go.Scatter(x = x, y = [mean]*len(data), mode = 'lines',showlegend=False,name = f'Mean failures over the {period}s',line = {'dash':'dash','color':
+                                                                                                                                        'grey'})
+        fig.append_trace(trace1, row = i+1, col = 1)
+        fig.append_trace(trace2, row = i+1, col = 1)
+    fig.update_layout(template = 'simple_white',height = 600,
+                    title = { 'text' : '<b>Failed Missions as a percentage of total missions in that period</b>', 'x' : 0.5})
+    for i in range(1,4):
+        fig.update_yaxes(title_text = '<b>Percentage</b>',row = i, col = 1)
+    
+    return fig
+
+def rocket_process(df):
+    df[' Rocket'] = df[' Rocket'].apply(lambda x: str(x).replace(',',''))
+    df[' Rocket'] = df[' Rocket'].astype('float64')
+    df[' Rocket'] = df[' Rocket'].fillna(0)
+
+    return df 
+
+def average_mission_cost(df):
+    costDict = dict(df[df[' Rocket'] > 0].groupby('year')[' Rocket'].mean())
+    fig = go.Figure(go.Scatter(x = list(costDict.keys()), y = list(costDict.values()), yaxis = 'y2',mode = 'lines',showlegend=False,name = 'Average Mission Cost Over the years'))
+    fig.update_layout(margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Average Mission Cost Over the years</b>', 'x' : 0.5},
+                    yaxis_title = '<b>Cost of Mission in Million Dollars</b>',xaxis_title = '<b>Year of Launch</b>',)
+    return fig
+
+def average_mission_cost_countries(df):
+    fig = px.scatter(df[df[' Rocket'].between(1,4999)],x = 'year', y = 'Country', color = 'Status Mission',size = ' Rocket', size_max=30)
+    fig.update_layout(template = 'simple_white',margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Average Mission Cost Over the years For Various Countries</b>', 'x' : 0.5})
+
+    return fig 
+
+def average_mission_cost_companies(df):
+    fig = px.scatter(df[df[' Rocket'].between(1,4999)],x = 'year', y = 'Company Name',color = 'Status Mission',size = ' Rocket',size_max = 30)
+    fig.update_layout(template = 'simple_white',margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Average Mission Cost Over the years For Various Companies</b>', 'x' : 0.5})
 
     return fig

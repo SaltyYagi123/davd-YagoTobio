@@ -184,3 +184,77 @@ def load_and_preprocess_data_missions(file_path):
 #df_astronauts = load_and_preprocess_data_astronauts("assets/astronauts.csv")
 #df_space_missions, missions_per_country, grouped_df = load_and_preprocess_data_missions("assets/space_missions.csv")
 
+def load_mission_success(file_path):
+    df = pd.read_csv(file_path, encoding="ISO-8859-1")
+    df.drop(['Unnamed: 0.1','Unnamed: 0'], axis = 1, inplace = True)
+    return df
+
+def process_mission_succes(df):
+
+    #function to extract the name of the country from the location
+    def extract_country_name(location):
+        country = location.split(',')[-1]
+        country = country.strip()
+        return country
+    
+    #function to get the Launch Vehicle Name from the Details
+    def getVehicles(detail):
+        lv = []
+        li = [x.strip() for x in detail.split('|')] #extracting the name of all launch vehicles from the Details section
+        for ele in li:
+            if('Cosmos' in ele):
+                lv.append('Cosmos')
+            elif('Vostok' in ele):
+                lv.append('Vostok')
+            elif('Tsyklon' in ele):
+                lv.append('Tsyklon')
+            elif('Ariane' in ele):
+                lv.append('Ariane')
+            elif('Atlas' in ele):
+                lv.append('Atlas')
+            elif('Soyuz' in ele):
+                lv.append('Soyuz')
+            elif('Delta' in ele):
+                lv.append('Delta')
+            elif('Titan' in ele):
+                lv.append('Titan')
+            elif('Molniya' in ele):
+                lv.append('Molniya')
+            elif('Zenit' in ele):
+                lv.append('Zenit')
+            elif('Falcon' in ele):
+                lv.append('Falcon')
+            elif('Long March' in ele):
+                lv.append('Long March')
+            elif('PSLV' in ele):
+                lv.append('PSLV')
+            elif('GSLV' in ele):
+                lv.append('GSLV')
+            elif('Thor' in ele):
+                lv.append('Thor')
+            else:
+                lv.append('Other')
+        return lv
+    
+    #dictionary to help in mapping to get consistent and correct Country Names
+    countries_dict = {
+        'Russia' : 'Russian Federation',
+        'New Mexico' : 'USA',
+        "Yellow Sea": 'China',
+        "Shahrud Missile Test Site": "Iran",
+        "Pacific Missile Range Facility": 'USA',
+        "Barents Sea": 'Russian Federation',
+        "Gran Canaria": 'USA'
+    }
+
+    df['Country'] = df['Location'].apply(lambda x: extract_country_name(x))
+    df['Country'] = df['Country'].replace(countries_dict)
+
+    #extracting date-time features
+    df['Datum'] = pd.to_datetime(df['Datum'], format="%a %b %d, %Y %H:%M UTC", errors='coerce')
+    df['year'] = df['Datum'].apply(lambda datetime: datetime.year)
+    df['month'] = df['Datum'].apply(lambda datetime: datetime.month)
+    df['weekday'] = df['Datum'].apply(lambda datetime: datetime.weekday())
+    df['Launch Vehicles'] = df['Detail'].apply(lambda x:getVehicles(x))
+
+    return df
