@@ -1,5 +1,19 @@
+import dash_bootstrap_components as dbc
 from dash import html, dcc, dash_table
-from figures import create_choropleth_figure, create_sunburst, create_scatterplot_major, create_group_bar_chart, company_sunburst
+from figures import (
+    create_choropleth_figure,
+    create_sunburst,
+    create_scatterplot_major,
+    create_group_bar_chart,
+    company_sunburst,
+    company_success_bar_chart,
+    treemap_success,
+    failed_missions_calendar,
+    average_mission_cost,
+    average_mission_cost_countries,
+    average_mission_cost_companies,
+    xgboost_importance_factors,
+)
 from data_processing import (
     load_and_preprocess_data_astronauts,
     load_and_preprocess_data_missions,
@@ -7,7 +21,7 @@ from data_processing import (
     load_mission_success,
     process_mission_success
 )
-import dash_bootstrap_components as dbc
+
 
 # Load and preprocess the data
 df_space_missions, missions_per_country, grouped_df = load_and_preprocess_data_missions(
@@ -315,7 +329,11 @@ def create_failure_explanation_card(spacex_image):
                         ),  # Adjust the width as needed
                         dbc.Col(success_rate_image, width=4),
                         dbc.Col(
-                            dcc.Graph(id="company-success-sunburst", figure=company_sunburst(df_ms))
+                            dcc.Graph(id="company-success-sunburst", figure=company_sunburst(df_ms), style={
+                                "width": "450px",
+                                "height": "325px",
+                                "margin": "auto",
+                            },)
                             ,width=4),
                         html.Hr(),
                     ]
@@ -365,7 +383,135 @@ def create_failure_explanation_card(spacex_image):
                                 figure=create_group_bar_chart(df_ms),
                         ),width=8),   
                     ]
-                )
+                ), 
+                dbc.Row(
+                    [
+                        html.H2("Analizando el efecto de una compañía"),
+                        dbc.Col(
+                            dcc.Markdown(
+                                """
+                                        Medimos la tasa de exito y fallo de cada compañía:
+
+                                        #### Compañías exitosas destacables:
+                                        Compañías como ASI, Blue Origin, Douglas, IRGC, i-Space, Yuzhmash y otras tienen un 100% de tasa de exito. 
+
+                                        #### Compañías fallidas destacables: 
+                                        Compañías como EER, Landscape, OneSpace, Sandia y Virgin Orbit tienen un 100% de tasa de fallo. Nunca han tenido una misión exitosa. 
+                                        """
+                            ),
+                            width=3,
+                        ),
+                        dbc.Col(
+                            dcc.Graph(
+                                id="company-bar-chart",
+                                figure=(company_success_bar_chart(df_ms)),
+                            ),
+                            width=9,
+                        ),
+                        html.Hr(),
+                        html.H3(
+                            "Gráfica recopilatoria de las tasas de éxito entre paises y sus respectivas compañías:"
+                        ),
+                        dcc.Graph(
+                            id="tree-map",
+                            figure=(treemap_success(df_ms)),
+                        ),
+                        html.Hr(),
+                    ]
+                ),
+                dbc.Row(
+                    [
+                        html.H2("Analizando el efecto de la hora y día del despegue:"), 
+                        dbc.Col(dcc.Markdown(
+                            """
+                        + El porcentaje global de misiones fallidas se ha reducido con los años. Mientras que en los primeros años tuvimos tasas de fracaso de hasta el 60-70%, la tasa de fracaso en 2018 es solo de alrededor del 1,7% y en 2019 es de alrededor del 5,5%.
+                        
+                        + Está claro que a medida que el campo de la Exploración Espacial ha evolucionado y que disponemos de tecnologías más nuevas y avanzadas, las probabilidades de fallo se han reducido.
+                        
+                        + La tasa media de fallos en este periodo es del 9,6%.
+                        
+                        + Repasando las tendencias mensuales de fracasos, vemos que las misiones espaciales lanzadas en noviembre tienen la mayor probabilidad de fracasar, seguidas de las de febrero.
+                        
+                        + Diciembre tiene la menor tasa de fracaso con un 5,78%.
+                        
+                        + Aunque la tendencia semanal no tiene sentido (a menos que se sea supersticioso), es interesante ver que el miércoles es el día más seguro de la semana en cuanto a lanzamientos de misiones espaciales.
+                            """), width = 4), 
+                        dbc.Col(dcc.Graph(
+                            id = "calendar-graph", 
+                            figure = failed_missions_calendar(df_ms)
+                        ), width = 8),
+                        html.Hr()
+                    ]
+                ), 
+                dbc.Row(
+                    [
+                        dbc.Col(dcc.Markdown(
+                            """ 
+                            Vemos que, con el tiempo, el coste medio de las misiones ha disminuido desde 1987. Sin embargo, como se ha visto anteriormente, la tasa de fracaso de las misiones espaciales ha disminuido con el tiempo. Por lo tanto, una cosa está clara, a medida que la tecnología ha avanzado, hemos sido capaces de hacer misiones espaciales a un menor coste y con menores tasas de fracaso.
+                            La razón por la que vemos un pico muy alto en 1987 es por una Misión Espacial de la RVSN URSS que tiene un coste estimado de 5000 millones de dólares. Eso sí que es mucho dinero. 
+                            Esto distorsionó mucho los datos, ya que la mayoría de las demás misiones espaciales de ese año no tenían ningún coste de misión en el conjunto de datos.
+                            """), width = 4),
+                        dbc.Col(dcc.Graph(
+                            id = "average-mission-cost", 
+                            figure = average_mission_cost(df_ms)
+                        ), width = 8),
+                        html.Hr(),
+                    ]
+                ),
+                dbc.Row(
+                    [
+                        html.H3("Análisis de los costes de las misiones en países y compañías"), 
+                        dcc.Markdown("""
+                        + Una tendencia importante que observamos es que Estados Unidos ha conseguido reducir el coste de sus misiones espaciales con el paso del tiempo.
+                        + El resultado anterior de que EE.UU. redujo el coste medio de las misiones a lo largo de los años también se confirma aquí a partir de los resultados mostrados por la NASA.
+                        + Otra cosa que me ha parecido especialmente interesante es que las primeras misiones de SpaceX no tuvieron éxito y su coste era notablemente inferior al de sus misiones espaciales posteriores. Por tanto, aumentar el presupuesto que asignan a cada misión espacial les ayudó a tener más éxito."""),
+                        dbc.Col(
+                            dcc.Graph(
+                                id="country-cost-evolution", 
+                                figure = average_mission_cost_countries(df_ms)
+                            ),width = 6
+                        ), 
+                        dbc.Col(
+                            dcc.Graph(
+                                id = "company-cost-evolution", 
+                                figure = average_mission_cost_companies(df_ms)
+                            ), width = 6
+                        ), 
+                    ]
+                ), 
+                dbc.Row(
+                    [
+                        html.Hr(),
+                        html.H2("Modelo de Machine Learning para determinar los factores del exito de una misión"), 
+                        dbc.Col(dcc.Markdown("""
+                        ### Rendimiento del modelo XGBoost:
+                        Sin ningún ajuste de hiperparámetros, entreno el modelo utilizando las siguientes características :
+
+                        + Nombre de la empresa
+                        + Lugar de lanzamiento
+                        + Cohete, es decir, coste de la misión
+                        + País
+                        + Año de lanzamiento
+                        + Mes de lanzamiento
+                        + Día de la semana de lanzamiento
+                        
+                        El objetivo es predecir la columna objetivo, que en este caso es el Estado de la Misión. 
+                        Hay que tener en cuenta que, para facilitar las cosas, considero cualquier misión que no haya sido un éxito como un fracaso, es decir, los fracasos parciales y los fracasos previos al lanzamiento son sólo fracasos a nuestros ojos.
+
+                        ##### El modelo de XGBoost nos da **una precisión del 93% en el dataset de entreno, y un 89% en el de testeo.**
+
+                        ##### Como se observa en este gráfico de importancia de características, vemos que el Año en que se lanzó la misión espacial tiene el mayor impacto a la hora de predecir el estado de la misión. Le sigue el mes de lanzamiento de la misión.
+                        """), width = 6), 
+                        dbc.Col(
+                            dcc.Graph(
+                                id = "xgboost-importance-factors", 
+                                figure = xgboost_importance_factors(df_ms)
+                            ), width = 6
+                        ),
+                        html.Hr(),
+                    ]
+                ),
+
             ]
         )
     )

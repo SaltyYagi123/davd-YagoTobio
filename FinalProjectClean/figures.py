@@ -3,6 +3,11 @@ import plotly.graph_objs as go
 import pandas as pd
 from plotly.subplots import make_subplots
 from sklearn.preprocessing import LabelEncoder
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+import xgboost as xgb
 
 def create_choropleth_figure(df, title, locations, locationmode, color, scope=None):
     """
@@ -241,14 +246,11 @@ def failed_missions_calendar(df):
     
     return fig
 
-def rocket_process(df):
+def average_mission_cost(df):
     df[' Rocket'] = df[' Rocket'].apply(lambda x: str(x).replace(',',''))
     df[' Rocket'] = df[' Rocket'].astype('float64')
     df[' Rocket'] = df[' Rocket'].fillna(0)
 
-    return df 
-
-def average_mission_cost(df):
     costDict = dict(df[df[' Rocket'] > 0].groupby('year')[' Rocket'].mean())
     fig = go.Figure(go.Scatter(x = list(costDict.keys()), y = list(costDict.values()), yaxis = 'y2',mode = 'lines',showlegend=False,name = 'Average Mission Cost Over the years'))
     fig.update_layout(margin=dict(l=80, r=80, t=50, b=10),
@@ -267,5 +269,39 @@ def average_mission_cost_companies(df):
     fig = px.scatter(df[df[' Rocket'].between(1,4999)],x = 'year', y = 'Company Name',color = 'Status Mission',size = ' Rocket',size_max = 30)
     fig.update_layout(template = 'simple_white',margin=dict(l=80, r=80, t=50, b=10),
                     title = { 'text' : '<b>Average Mission Cost Over the years For Various Companies</b>', 'x' : 0.5})
+
+    return fig
+
+
+def xgboost_importance_factors(df):
+    # Assuming 'df' is your DataFrame
+    df['Target'] = (~(df['Status Mission'] == 'Success')).astype('int32')
+    # Select features and target
+    X = df[['Company Name', 'Country', 'year', 'month', 'weekday']]  # Assuming ' Rocket' is either dropped or correctly processed elsewhere
+    y = df['Target']
+
+    # Initialize the LabelEncoder
+    encoder = LabelEncoder()
+
+    # Apply the encoder to each categorical column
+    X['Company Name'] = encoder.fit_transform(df['Company Name'])
+    X['Country'] = encoder.fit_transform(df['Country'])
+
+    # Splitting the dataset into the Training set and Test set
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0, stratify=y)
+
+    # Initialize the classifier
+    classifier_xgb = xgb.XGBClassifier(random_state=0, n_jobs=-1, max_depth=5)
+
+    # Fit the classifier to the training data
+    classifier_xgb.fit(X_train, y_train)
+
+    feature_importance_xgb = classifier_xgb.get_booster().get_fscore()
+
+    trace = go.Bar(x = list(feature_importance_xgb.values()), y = list(feature_importance_xgb.keys()),orientation='h')
+    fig = go.Figure([trace])
+    fig.update_layout(template = 'simple_white',margin=dict(l=80, r=80, t=50, b=10),
+                    title = { 'text' : '<b>Feature Importance</b>', 'x' : 0.5},
+                    yaxis_title = '<b>Features</b>',xaxis_title = '<b>F Score</b>')
 
     return fig
