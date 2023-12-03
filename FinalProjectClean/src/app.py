@@ -5,6 +5,7 @@ from data_processing import load_and_preprocess_data_astronauts, load_and_prepro
 from callbacks import  astronaut_callbacks, mission_time_series_callback, mission_3d_scatter_callback
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.SUPERHERO, dbc.icons.FONT_AWESOME])
+server = app.server
 
 df_space_missions, missions_per_country, grouped_df = load_and_preprocess_data_missions("assets/space_missions.csv")
 df_astronauts, major_counts, state_counts = load_and_preprocess_data_astronauts("assets/astronauts.csv")
