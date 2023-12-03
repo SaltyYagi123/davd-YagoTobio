@@ -5,7 +5,7 @@ from data_processing import (
     load_and_preprocess_data_missions,
     generate_wordcloud,
     load_mission_success,
-    process_mission_succes
+    process_mission_success
 )
 import dash_bootstrap_components as dbc
 
@@ -17,7 +17,7 @@ df_astronauts, major_counts, state_counts = load_and_preprocess_data_astronauts(
     "assets/astronauts.csv"
 )
 df_mission_success = load_mission_success("assets/Space_Corrected.csv")
-df_ms = process_mission_succes(df_mission_success)
+df_ms = process_mission_success(df_mission_success)
 wordcloud_image = generate_wordcloud(df_astronauts)
 
 spacex_image = html.Img(

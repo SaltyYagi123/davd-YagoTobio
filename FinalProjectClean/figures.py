@@ -169,8 +169,6 @@ def treemap_success(df):
     fig = px.treemap(df,path = ['Status Mission','Country','Company Name'])
     fig.update_layout(template = 'ggplot2',margin=dict(l=80, r=80, t=50, b=10),
                     title = { 'text' : '<b>Mission Status,Countries and Companies</b>', 'x' : 0.5})
-    fig.show()
-
     return fig
 
 def rocket_effect(df):
