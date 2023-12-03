@@ -189,7 +189,7 @@ def load_mission_success(file_path):
     df.drop(['Unnamed: 0.1','Unnamed: 0'], axis = 1, inplace = True)
     return df
 
-def process_mission_succes(df):
+def process_mission_success(df):
 
     #function to extract the name of the country from the location
     def extract_country_name(location):
