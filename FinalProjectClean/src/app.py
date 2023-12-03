@@ -17,4 +17,4 @@ mission_time_series_callback(app, df_space_missions)
 mission_3d_scatter_callback(app, df_space_missions)
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)
